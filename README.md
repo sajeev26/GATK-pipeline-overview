@@ -166,3 +166,7 @@ gatk Funcotator \
 # VEP (Ensembl)
 
 Alternatively, annotation can be performed through Ensembl VEP (web or CLI).
+
+# For your queries and suggestions
+
+Reach out to 'sajeevrajssr@gmail.com'
