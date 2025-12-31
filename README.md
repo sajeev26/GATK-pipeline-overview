@@ -46,13 +46,13 @@ wget -P reference/hg38/ http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/h
 
 gunzip reference/hg38/hg38.fa.gz
 
-# Quality Check — FastQC
+# Quality Check - FastQC
 fastqc sample_1.fastq sample_2.fastq
 
 # Read Trimming — Trimmomatic
 java -jar trimmomatic-0.30.jar PE sample_1.fastq sample_2.fastq sample_1_paired.fq.gz sample_1_unpaired.fq.gz sample_2_paired.fq.gz sample_2_unpaired.fq.gz ILLUMINACLIP:adapter.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
 
-# Alignment — BWA
+# Alignment - BWA
 
 Install BWA:
 
@@ -73,7 +73,7 @@ samtools view -bS aligned_reads.sam > aligned_reads.bam
 java -jar picard.jar SortSam -INPUT aligned_reads.bam -OUTPUT sorted_reads.bam -SORT_ORDER coordinate
 samtools index sorted_reads.bam
 
-# Mark Duplicates — Picard
+# Mark Duplicates - Picard
 java -jar picard.jar MarkDuplicates INPUT=with_readgroups.bam OUTPUT=marked_reads.bam METRICS_FILE=dup_metrics.txt
 
 
@@ -103,7 +103,7 @@ gatk BaseRecalibrator -I marked_reads.bam -R reference_genome.fasta -known-sites
 
 gatk ApplyBQSR -I marked_reads.bam -R reference_genome.fasta --bqsr-recal-file recal_data.table -O recalibrated_reads.bam
 
-# Variant Calling — HaplotypeCaller
+# Variant Calling - HaplotypeCaller
 Standard VCF:
 
 gatk HaplotypeCaller -R reference_genome.fasta -I recalibrated_reads.bam -O raw_variants.vcf
@@ -119,15 +119,14 @@ gatk GenotypeGVCFs -R reference_genome.fasta -V combined.g.vcf -O combined_varia
 # Variant Filtering
 Human data — VQSR:
 
-gatk VariantRecalibrator ...
-gatk ApplyVQSR ...
+gatk VariantRecalibrator & gatk ApplyVQSR
 
-# Bacterial/Fungal — Hard Filtering:
+# Bacterial/Fungal - Hard Filtering:
 gatk VariantFiltration -R reference.fasta -V raw_variants.vcf --filter-name "LowQual" --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0" -O filtered_variants.vcf
 
 # Separate SNP / INDEL:
 
-gatk SelectVariants ...
+Use "gatk SelectVariants"
 
 # Variant Annotation
 Funcotator:
