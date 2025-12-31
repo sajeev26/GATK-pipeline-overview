@@ -50,12 +50,7 @@ gunzip reference/hg38/hg38.fa.gz
 fastqc sample_1.fastq sample_2.fastq
 
 # Read Trimming — Trimmomatic
-java -jar trimmomatic-0.30.jar PE \
-sample_1.fastq sample_2.fastq \
-sample_1_paired.fq.gz sample_1_unpaired.fq.gz \
-sample_2_paired.fq.gz sample_2_unpaired.fq.gz \
-ILLUMINACLIP:adapter.fa:2:30:10 LEADING:3 TRAILING:3 \
-SLIDINGWINDOW:4:15 MINLEN:36
+java -jar trimmomatic-0.30.jar PE sample_1.fastq sample_2.fastq sample_1_paired.fq.gz sample_1_unpaired.fq.gz sample_2_paired.fq.gz sample_2_unpaired.fq.gz ILLUMINACLIP:adapter.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
 
 # Alignment — BWA
 
@@ -69,8 +64,7 @@ bwa index reference/hg38/reference_genome.fasta
 
 # Align:
 
-bwa mem reference/hg38/reference_genome.fasta \
-sample_1.fastq sample_2.fastq > aligned_reads.sam
+bwa mem reference/hg38/reference_genome.fasta sample_1.fastq sample_2.fastq > aligned_reads.sam
 
 # Convert and sort:
 
@@ -80,15 +74,12 @@ java -jar picard.jar SortSam -INPUT aligned_reads.bam -OUTPUT sorted_reads.bam -
 samtools index sorted_reads.bam
 
 # Mark Duplicates — Picard
-java -jar picard.jar MarkDuplicates \
-INPUT=with_readgroups.bam OUTPUT=marked_reads.bam METRICS_FILE=dup_metrics.txt
+java -jar picard.jar MarkDuplicates INPUT=with_readgroups.bam OUTPUT=marked_reads.bam METRICS_FILE=dup_metrics.txt
 
 
 If required:
 
-java -jar picard.jar AddOrReplaceReadGroups \
--I sorted_reads.bam -O with_readgroups.bam \
--RGID 1 -RGLB library1 -RGPL illumina -RGPU unit1 -RGSM sample1
+java -jar picard.jar AddOrReplaceReadGroups -I sorted_reads.bam -O with_readgroups.bam -RGID 1 -RGLB library1 -RGPL illumina -RGPU unit1 -RGSM sample1
 
 # Base Quality Score Recalibration (BQSR)
 
@@ -108,48 +99,31 @@ wget -P reference/hg38/ https://storage.googleapis.com/genomics-public-data/reso
 
 # Run BQSR:
 
-gatk BaseRecalibrator \
--I marked_reads.bam -R reference_genome.fasta \
--known-sites dbsnp.vcf -O recal_data.table
+gatk BaseRecalibrator -I marked_reads.bam -R reference_genome.fasta -known-sites dbsnp.vcf -O recal_data.table
 
-gatk ApplyBQSR \
--I marked_reads.bam -R reference_genome.fasta \
---bqsr-recal-file recal_data.table -O recalibrated_reads.bam
+gatk ApplyBQSR -I marked_reads.bam -R reference_genome.fasta --bqsr-recal-file recal_data.table -O recalibrated_reads.bam
 
 # Variant Calling — HaplotypeCaller
 Standard VCF:
-gatk HaplotypeCaller \
--R reference_genome.fasta \
--I recalibrated_reads.bam \
--O raw_variants.vcf
 
-# GVCF mode:
-gatk HaplotypeCaller \
--R reference_genome.fasta \
--I recalibrated_reads.bam \
--O sample.g.vcf -ERC GVCF
+gatk HaplotypeCaller -R reference_genome.fasta -I recalibrated_reads.bam -O raw_variants.vcf
+
+# GVCF mode(For multiple sample):
+gatk HaplotypeCaller -R reference_genome.fasta -I recalibrated_reads.bam -O sample.g.vcf -ERC GVCF
 
 # Joint Genotyping (Multi-sample)
-gatk CombineGVCFs \
--R reference_genome.fasta -V sample1.g.vcf -V sample2.g.vcf \
--O combined.g.vcf
+gatk CombineGVCFs -R reference_genome.fasta -V sample1.g.vcf -V sample2.g.vcf -O combined.g.vcf
 
-gatk GenotypeGVCFs \
--R reference_genome.fasta -V combined.g.vcf \
--O combined_variants.vcf
+gatk GenotypeGVCFs -R reference_genome.fasta -V combined.g.vcf -O combined_variants.vcf
 
 # Variant Filtering
 Human data — VQSR:
+
 gatk VariantRecalibrator ...
 gatk ApplyVQSR ...
 
 # Bacterial/Fungal — Hard Filtering:
-gatk VariantFiltration \
--R reference.fasta -V raw_variants.vcf \
---filter-name "LowQual" \
---filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0" \
--O filtered_variants.vcf
-
+gatk VariantFiltration -R reference.fasta -V raw_variants.vcf --filter-name "LowQual" --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0" -O filtered_variants.vcf
 
 # Separate SNP / INDEL:
 
@@ -157,11 +131,8 @@ gatk SelectVariants ...
 
 # Variant Annotation
 Funcotator:
-gatk Funcotator \
--R reference/hg38/reference_genome.fasta \
--V filtered_variants.vcf \
---output-file annotated_variants.vcf \
---data-sources-path /path/to/funcotator_data_sources
+
+gatk Funcotator -R reference/hg38/reference_genome.fasta -V filtered_variants.vcf --output-file annotated_variants.vcf --data-sources-path /path/to/funcotator_data_sources
 
 # VEP (Ensembl)
 
