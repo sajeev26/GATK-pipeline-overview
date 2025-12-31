@@ -49,7 +49,7 @@ gunzip reference/hg38/hg38.fa.gz
 # Quality Check - FastQC
 fastqc sample_1.fastq sample_2.fastq
 
-# Read Trimming — Trimmomatic
+# Read Trimming - Trimmomatic
 java -jar trimmomatic-0.30.jar PE sample_1.fastq sample_2.fastq sample_1_paired.fq.gz sample_1_unpaired.fq.gz sample_2_paired.fq.gz sample_2_unpaired.fq.gz ILLUMINACLIP:adapter.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
 
 # Alignment - BWA
